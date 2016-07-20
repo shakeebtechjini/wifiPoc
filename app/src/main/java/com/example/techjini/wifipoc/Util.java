@@ -7,13 +7,13 @@ public class Util {
     public static String getSecureType(String capabilities) {
 
         if (capabilities.contains("WPA2")) {
-            return "WPA2";
+            return WifiModel.SECURE_WPA2;
         } else if (capabilities.contains("WPA")) {
-            return "WPA";
+            return WifiModel.SECURE_WPA;
         } else if (capabilities.contains("WEP")) {
-            return "WEP";
+            return WifiModel.SECURE_WEP;
         }
-        return "open";
+        return WifiModel.SECURE_OPEN;
     }
 
 }

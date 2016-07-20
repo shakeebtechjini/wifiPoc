@@ -6,6 +6,10 @@ import android.net.wifi.ScanResult;
  * Created by techjini on 18/7/16.
  */
 public class WifiModel {
+    public static final String SECURE_WEP="WEP";
+    public static final String SECURE_WPA="WPA";
+    public static final String SECURE_WPA2="WPA2";
+    public static final String SECURE_OPEN="open";
     private ScanResult scanResult;
     private String secureType;
 
