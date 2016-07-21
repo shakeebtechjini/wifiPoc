@@ -10,6 +10,7 @@ import android.net.NetworkInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
@@ -26,12 +27,15 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements WifiClickListener {
 
+
+    private static final String TAG = MainActivity.class.getSimpleName();
     private WifiManager mWifiManager;
     private ActivityMainBinding mBinding;
     private final String StateChange = "android.net.wifi.STATE_CHANGE";
     private final String connectivityChange = "android.net.conn.CONNECTIVITY_CHANGE";
     private int mNetworkId = -1;
     private WifiModel mWifiModel;
+    private boolean isBroadcastRegistered;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements WifiClickListener
         switch (wifiModel.getSecureType()) {
             case WifiModel.SECURE_WPA2:
             case WifiModel.SECURE_WPA:
-                conf.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
+                /*conf.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
                 conf.allowedProtocols.set(WifiConfiguration.Protocol.WPA);
                 conf.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.WPA_PSK);
                 conf.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
@@ -96,7 +100,7 @@ public class MainActivity extends AppCompatActivity implements WifiClickListener
                 conf.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP40);
                 conf.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP104);
                 conf.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
-                conf.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
+                conf.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);*/
                 conf.preSharedKey = Constant.DOUBLE_QUOTE + networkPass + Constant.DOUBLE_QUOTE;
                 break;
             case WifiModel.SECURE_WEP:
@@ -122,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements WifiClickListener
                 break;
 
         }
-
+        registerReceiver();
         mWifiManager.addNetwork(conf);
         List<WifiConfiguration> list = mWifiManager.getConfiguredNetworks();
         for (final WifiConfiguration i : list) {
@@ -155,11 +159,19 @@ public class MainActivity extends AppCompatActivity implements WifiClickListener
 
     }
 
-    /*private BroadcastReceiver wifiListener = new BroadcastReceiver() {
+    private void registerReceiver() {
+        isBroadcastRegistered=true;
+        IntentFilter iff = new IntentFilter();
+        iff.addAction(StateChange);
+        iff.addAction(connectivityChange);
+        registerReceiver(wifiListener, iff);
+    }
+
+    private BroadcastReceiver wifiListener = new BroadcastReceiver() {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            if(intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
+            /*if(intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
                 ConnectivityManager connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
                 int networkType = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_TYPE);
                 boolean isWiFi = networkType == ConnectivityManager.TYPE_WIFI;
@@ -183,9 +195,42 @@ public class MainActivity extends AppCompatActivity implements WifiClickListener
                 }
             }
 
+             mContext = context;
+*/
+
+            if (intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
+
+                ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+
+                if (networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI &&
+                        networkInfo.isConnected()) {
+                    // Wifi is connected
+                    WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+                    WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                    String ssid = wifiInfo.getSSID();
+
+                    Log.e(TAG, " -- Wifi connected --- " + " SSID " + ssid);
+
+                } else if (networkInfo != null && networkInfo.getType() == ConnectivityManager.TYPE_WIFI &&
+                        !networkInfo.isConnected()) {
+                    WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+                    WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                    String ssid = wifiInfo.getSSID();
+                    Log.e(TAG, " -- Wrong Password --- " + " SSID " + ssid);
+                }
+
+            } else if (intent.getAction().equalsIgnoreCase(WifiManager.WIFI_STATE_CHANGED_ACTION)) {
+                int wifiState = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN);
+                if (wifiState == WifiManager.WIFI_STATE_DISABLED) {
+                    Log.e(TAG, " ----- Wifi  Disconnected ----- ");
+                }
+
+            }
+
         }
     };
-*/
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -193,5 +238,13 @@ public class MainActivity extends AppCompatActivity implements WifiClickListener
         iff.addAction(StateChange);
         iff.addAction(connectivityChange);
          registerReceiver(wifiListener, iff);*/
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if(isBroadcastRegistered)
+        unregisterReceiver(wifiListener);
+        isBroadcastRegistered=false;
     }
 }
